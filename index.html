@@ -18,7 +18,7 @@
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 body{
   margin:0; font-family:'Inter',system-ui,sans-serif; background:var(--bg); color:var(--text);
-  min-height:100vh; padding-bottom:110px;
+  min-height:100vh; padding-bottom:96px;
   background-image:radial-gradient(600px 300px at 20% -5%,rgba(124,58,237,.10),transparent),
                    radial-gradient(500px 260px at 90% 10%,rgba(6,182,212,.08),transparent);
   background-attachment:fixed;
@@ -93,6 +93,14 @@ header.top{display:flex; align-items:center; justify-content:space-between; marg
 #sendBtn{width:52px; height:52px; flex:none; border:none; border-radius:50%; cursor:pointer;
   background:var(--grad); color:#fff; font-size:20px; box-shadow:0 6px 20px rgba(124,58,237,.45);}
 #sendBtn:active{transform:scale(.92);}
+.inputbar{transition:transform .35s cubic-bezier(.32,.72,.35,1);}
+.inputbar.hidden{transform:translateY(110%);}
+.fab{position:fixed; right:16px; bottom:calc(20px + env(safe-area-inset-bottom)); width:58px; height:58px;
+  border-radius:50%; background:var(--grad); color:#fff; font-size:30px; line-height:1; border:none;
+  box-shadow:0 8px 24px rgba(124,58,237,.45); z-index:25; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; transition:transform .3s ease, opacity .25s ease;}
+.fab.hidden{transform:scale(0); opacity:0; pointer-events:none;}
+#hideBar{background:none; border:none; font-size:22px; color:var(--muted); cursor:pointer; padding:4px 6px; flex:none;}
 /* preview */
 #preview{display:none; margin-top:10px; background:rgba(124,58,237,.12); border:1px solid rgba(124,58,237,.4);
   border-radius:16px; padding:14px;}
@@ -168,14 +176,16 @@ header.top{display:flex; align-items:center; justify-content:space-between; marg
   <div id="txList"></div>
 </div>
 
-<div class="inputbar"><div class="inner">
+<div class="inputbar hidden" id="inputbar"><div class="inner">
   <p class="hint">Ex.: <b>"gastei 50 no mercado"</b> · <b>"café da manhã 39,55"</b> · <b>"recebi 2000 salário"</b></p>
   <div class="chatrow">
+    <button id="hideBar" title="Ocultar">⌄</button>
     <input id="txt" placeholder="Descreva seu gasto ou ganho…" autocomplete="off" enterkeyhint="send">
     <button id="sendBtn" title="Lançar">➤</button>
   </div>
   <div id="preview"></div>
 </div></div>
+<button class="fab" id="fab" title="Novo lançamento">+</button>
 
 <div class="modal" id="editModal"><div class="sheet">
   <h3>✏️ Editar lançamento</h3>
@@ -314,7 +324,7 @@ function render(){
   $('hSaldo').style.color = saldo<0 ? '#fecdd3' : '#fff';
   $('cGanhos').textContent = BRL(ganhos);
   $('cGastos').textContent = BRL(gastos);
-  $('hSub').textContent = txs.length ? txs.length+' lançamento(s) no período' : 'toque abaixo e lance seu primeiro gasto 👇';
+  $('hSub').textContent = txs.length ? txs.length+' lançamento(s) no período' : 'toque no + para lançar 👇';
 
   // donut
   const byCat = {};
@@ -341,7 +351,7 @@ function render(){
   // list
   const box = $('txList');
   if(!txs.length){
-    box.innerHTML = `<div class="empty"><span class="big">🪴</span>Nada por aqui ainda.<br>Lance seu primeiro gasto ou ganho ali embaixo 👇</div>`;
+    box.innerHTML = `<div class="empty"><span class="big">🪴</span>Nada por aqui ainda.<br>Toque no botão + para lançar 👇</div>`;
     return;
   }
   box.innerHTML = txs.map(t=>{
@@ -382,7 +392,7 @@ function showPreview(p, raw){
   $('preview').classList.add('show');
 }
 function togglePedit(){ $('editForm').classList.toggle('show'); }
-function hidePreview(){ $('preview').classList.remove('show'); $('preview').innerHTML=''; pending=null; }
+function hidePreview(){ $('preview').classList.remove('show'); $('preview').innerHTML=''; pending=null; hideBar(); }
 function confirmTx(){
   if(!$('editForm').classList.contains('show')){
     commitTx(pending); return;
@@ -411,6 +421,18 @@ function handleSend(){
 }
 $('sendBtn').onclick = handleSend;
 $('txt').addEventListener('keydown', e=>{ if(e.key==='Enter') handleSend(); });
+
+/* ---------- barra retrátil ---------- */
+function showBar(){ $('inputbar').classList.remove('hidden'); $('fab').classList.add('hidden');
+  setTimeout(()=>{ try{$('txt').focus();}catch(e){} },350); }
+function hideBar(){ $('inputbar').classList.add('hidden'); $('fab').classList.remove('hidden');
+  try{$('txt').blur();}catch(e){} }
+$('fab').onclick = ()=>showBar();
+$('hideBar').onclick = ()=>hideBar();
+document.querySelector('.wrap').addEventListener('click', e=>{
+  if(e.target.closest('button,input,select,a')) return;
+  if($('inputbar').classList.contains('hidden')) showBar();
+});
 
 /* ---------- edit / delete ---------- */
 function openEdit(id){
